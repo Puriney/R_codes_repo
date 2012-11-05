@@ -1,5 +1,7 @@
-#主要所用函数
-#ctab和plotcorr
+#functions we will use
+#cor
+#plotcorr
+#corrplot
 
 #产出数据
 set.seed(1026)
@@ -10,15 +12,15 @@ yvar <- (1:20)/2 + rnorm(20, sd=10)
 zvar <- rnorm(20, sd=6)
 data <- data.frame(vvar,wvar,xvar,yvar,zvar)
 
-#绘图
+
 library(ellipse)
-#相关性表格
+#table
 ctab <- cor(data)
 
-#绘图, 但数据为灰白
+#graphing, but grey-white
 plotcorr(ctab)
 
-#绘图, 但图的颜色与相关性大小相对应
+#graphing, and data-value <-> color
 round(ctab,2)
 #vvar  wvar  xvar  yvar  zvar
 #vvar  1.00  0.74 -0.88  0.06 -0.03
@@ -27,7 +29,34 @@ round(ctab,2)
 #yvar  0.06 -0.05 -0.17  1.00  0.22
 #zvar -0.03  0.13 -0.17  0.22  1.00
 
-#红色到蓝色的渐变色
+#red->blue gradient
 colorfun <- colorRamp(c("#CC0000","white","#3366CC"), space="Lab")
-#数值(0,1),颜色(红色,蓝色)
+#value: (0,1); color:(red,blue)
 plotcorr(ctab, col=rgb(colorfun((ctab+1)/2), maxColorValue=255))
+
+#corrplot
+par (ask=FALSE)
+for (i in c("circle", "square", "ellipse", "number", "shade", "color", "pie")){
+  corrplot(ctab,method=i,title=paste("method:",i,sep=""))
+  Sys.sleep(2)
+}
+
+cor.mtest <- function(mat, conf.level = 0.95){
+  mat <- as.matrix(mat)
+  n <- ncol(mat)
+  p.mat <- lowCI.mat <- uppCI.mat <- matrix(NA, n, n)
+  diag(p.mat) <- 0
+  diag(lowCI.mat) <- diag(uppCI.mat) <- 1
+  for(i in 1:(n-1)){
+    for(j in (i+1):n){
+      tmp <- cor.test(mat[,i], mat[,j], conf.level = conf.level)
+      p.mat[i,j] <- p.mat[j,i] <- tmp$p.value
+      lowCI.mat[i,j] <- lowCI.mat[j,i] <- tmp$conf.int[1]
+      uppCI.mat[i,j] <- uppCI.mat[j,i] <- tmp$conf.int[2]
+    }
+  }
+  return(list(p.mat, lowCI.mat, uppCI.mat))
+}
+res1<-cor.mtest(ctab,0.95)
+corrplot(ctab, p.mat = res1[[1]], sig.level=0.2,order="hclust",addrect=3,cl.length=5,cl.align.text="l",tl.col="black",tl.srt=45,bg="#fcfcfc",addCoef.col="black",tl.srt=45,method="ellipse",)
+
